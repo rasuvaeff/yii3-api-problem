@@ -1,0 +1,87 @@
+# yii3-api-problem
+
+RFC 9457 Problem Details value object, PSR-7 response factory, exception mapper,
+and PSR-15 error middleware. Namespace: `Rasuvaeff\Yii3ApiProblem`.
+
+## Install
+
+```bash
+composer require rasuvaeff/yii3-api-problem
+```
+
+Provide a PSR-7/17 implementation such as `nyholm/psr7`.
+
+## Rules
+
+- `ProblemDetails::status` must be in 100..599.
+- `type` must be non-empty and defaults to `about:blank` in named constructors.
+- Extension keys cannot be `type`, `title`, `status`, `detail`, or `instance`.
+- Problem responses always use `application/problem+json` and `nosniff`.
+- Keep middleware `debug: false` in production.
+- Generic exception messages and traces are exposed only in debug mode.
+- `ProblemDetailsException` is intentional client-facing data; keep it safe.
+- `invalid-params` is a package extension, not a standardized RFC member.
+- Caller headers cannot override `Content-Type` or `X-Content-Type-Options`.
+- Reporter implementations receive the throwable and request and must not throw.
+- Configured exception mappings use exact class names.
+- The package does not bind mapper or reporter interfaces; applications own them.
+
+## API reference
+
+```php
+$problem = ProblemDetails::create(
+    type: 'https://example.com/problems/validation',
+    title: 'Validation failed',
+    status: 422,
+    detail: 'The request has invalid fields',
+    instance: '/requests/abc',
+    extensions: ['errors' => ['email' => ['Invalid email']]],
+);
+$validation = ProblemDetails::fromStatus(status: 422)->withInvalidParams(
+    InvalidParam::create(name: 'email', reason: 'Invalid email'),
+);
+
+$problem = ProblemDetails::fromStatus(status: 404); // title: Not Found
+$copy = $problem->withDetail('Widget 42 was not found');
+$array = $copy->toArray();
+$json = $copy->toJson();
+```
+
+```php
+$psr17 = new Nyholm\Psr7\Factory\Psr17Factory();
+$factory = new ProblemDetailsResponseFactory($psr17, $psr17);
+$response = $factory->toResponse($problem, headers: ['Retry-After' => '120']);
+```
+
+```php
+throw ProblemDetailsException::forProblem(
+    details: $problem,
+    previous: $throwable,
+    headers: ['WWW-Authenticate' => 'Bearer realm="api"'],
+);
+```
+
+```php
+$mapper = new DefaultExceptionMapper(exceptionMap: [
+    UserNotFoundException::class => [
+        'type' => 'https://example.com/problems/user-not-found',
+        'title' => 'User not found',
+        'status' => 404,
+    ],
+]);
+
+$middleware = new ProblemDetailsMiddleware(
+    responseFactory: $factory,
+    exceptionMapper: $mapper,
+    debug: false,
+    correlationIdProvider: $optionalProvider,
+    throwableReporter: $optionalReporter,
+);
+```
+
+Interfaces:
+
+- `ProblemDetailsResponseFactoryInterface::toResponse(ProblemDetails, headers): ResponseInterface`
+- `ExceptionMapperInterface::toProblem(Throwable): ?ProblemDetails`
+- `CorrelationIdProvider::getCorrelationId(): ?string`
+- `ThrowableReporterInterface::report(Throwable, ServerRequestInterface): void`
