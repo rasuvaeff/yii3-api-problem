@@ -6,6 +6,7 @@
 [![Static analysis](https://github.com/rasuvaeff/yii3-api-problem/actions/workflows/static-analysis.yml/badge.svg)](https://github.com/rasuvaeff/yii3-api-problem/actions/workflows/static-analysis.yml)
 [![Psalm level](https://shepherd.dev/github/rasuvaeff/yii3-api-problem/level.svg)](https://shepherd.dev/github/rasuvaeff/yii3-api-problem)
 [![License](https://poser.pugx.org/rasuvaeff/yii3-api-problem/license)](LICENSE.md)
+[Русская версия](README.ru.md)
 
 RFC 9457 Problem Details for Yii3 and any PSR-7/PSR-15 application. Use the
 value object directly, turn it into a hardened response, or catch exceptions
