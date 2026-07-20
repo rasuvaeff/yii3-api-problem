@@ -1,31 +1,41 @@
-# rasuvaeff/yii3-api-проблема
+# rasuvaeff/yii3-api-problem
+
 [![Latest Stable Version](https://poser.pugx.org/rasuvaeff/yii3-api-problem/v/stable)](https://packagist.org/packages/rasuvaeff/yii3-api-problem)
 [![Total Downloads](https://poser.pugx.org/rasuvaeff/yii3-api-problem/downloads)](https://packagist.org/packages/rasuvaeff/yii3-api-problem)
 [![Build](https://github.com/rasuvaeff/yii3-api-problem/actions/workflows/build.yml/badge.svg)](https://github.com/rasuvaeff/yii3-api-problem/actions/workflows/build.yml)
 [![Static analysis](https://github.com/rasuvaeff/yii3-api-problem/actions/workflows/static-analysis.yml/badge.svg)](https://github.com/rasuvaeff/yii3-api-problem/actions/workflows/static-analysis.yml)
 [![Psalm level](https://shepherd.dev/github/rasuvaeff/yii3-api-problem/level.svg)](https://shepherd.dev/github/rasuvaeff/yii3-api-problem)
 [![License](https://poser.pugx.org/rasuvaeff/yii3-api-problem/license)](LICENSE.md)
-RFC 9457 Подробности проблемы для Yii3 и любого приложения PSR-7/PSR-15. Используйте объект значения
- напрямую, превратите его в усиленный ответ или перехватывайте исключения
- с помощью промежуточного программного обеспечения, которое имеет явные политики раскрытия информации о производстве и отладке.
+[English version](README.md)
 
- > Используете помощника по программированию с искусственным интеллектом? [llms.txt](llms.txt) — это компактный справочник API
- > с правилами пакета и готовыми для копирования примерами.
+RFC 9457 Problem Details для Yii3 и любого PSR-7/PSR-15 приложения. Используйте
+value object напрямую, превращайте его в защищённый ответ или перехватывайте
+исключения middleware-ом с явными политиками раскрытия для production и debug.
+
+> Используете AI-ассистента? В [llms.txt](llms.txt) — компактный API-справочник
+> с правилами пакета и готовыми к копированию примерами.
+
 ## Требования
-- PHP 8,3-8,5.
- — реализация PSR-7 и фабрики ответов/потоков PSR-17.
- — стек PSR-15 только при использовании «ProblemDetailsMiddleware».
+
+- PHP 8.3-8.5.
+- Реализация PSR-7 и фабрики ответов/потоков PSR-17.
+- Стек PSR-15 — только при использовании `ProblemDetailsMiddleware`.
+
 ## Установка
+
 ```bash
 composer require rasuvaeff/yii3-api-problem
 ```
-В примерах в качестве реализации PSR-7/17 используется `nyholm/psr7`:
+
+В примерах используется `nyholm/psr7` как реализация PSR-7/17:
 
 ```bash
 composer require nyholm/psr7
 ```
+
 ## Использование
-Создайте документ RFC 9457 в действии и верните его как ответ PSR-7:
+
+Создайте документ RFC 9457 в действии и верните его как PSR-7 ответ:
 
 ```php
 use Nyholm\Psr7\Factory\Psr17Factory;
@@ -44,25 +54,29 @@ $psr17 = new Psr17Factory();
 $response = (new ProblemDetailsResponseFactory($psr17, $psr17))
     ->toResponse($problem);
 ```
-Статус ответа зависит от проблемы. Его тип контента всегда
- `application/problem+json`, и он всегда содержит
- `X-Content-Type-Options: nosniff`.
-### Объект значения
-| Метод | Цель |
- |---|---|
- | `создать(название, статус, тип, деталь, экземпляр, расширения)` | Создайте полный документ о проблеме |
- | `fromStatus(статус, заголовок, тип)` | Создайте его, используя фразу причины HTTP в качестве заголовка по умолчанию |
- | `withDetail(деталь)` | Вернуть копию с пояснительными подробностями |
- | `withInstance(экземпляр)` | Вернуть копию с идентификатором вхождения |
- | `withExtension(ключ, значение)` | Добавить или заменить одного члена расширения |
- | `withExtensions(расширения)` | Заменить всех членов расширения |
- | `withInvalidParams(...params)` | Добавить ошибки проверки типизированных полей |
- | `toArray()` / `toJson(флаги)` | Сериализовать проблемный документ |
 
- `type`, `title`, `status`, `detail` и `instance` зарезервированы и не могут использоваться
- в качестве имен расширений. Необязательные нулевые члены во время сериализации опускаются.
+Статус ответа берётся из problem. Content-type всегда
+`application/problem+json`, и ответ всегда несёт
+`X-Content-Type-Options: nosniff`.
 
- `InvalidParam` обеспечивает стабильную форму для ошибок проверки поля:
+### Value object
+
+| Метод | Назначение |
+|---|---|
+| `create(title, status, type, detail, instance, extensions)` | Создать полный документ problem |
+| `fromStatus(status, title, type)` | Создать, используя HTTP reason phrase как заголовок по умолчанию |
+| `withDetail(detail)` | Вернуть копию с поясняющим detail |
+| `withInstance(instance)` | Вернуть копию с идентификатором вхождения |
+| `withExtension(key, value)` | Добавить или заменить один extension-member |
+| `withExtensions(extensions)` | Заменить все extension-members |
+| `withInvalidParams(...params)` | Добавить типизированные ошибки валидации полей |
+| `toArray()` / `toJson(flags)` | Сериализовать документ problem |
+
+`type`, `title`, `status`, `detail` и `instance` зарезервированы и не могут
+использоваться как имена extension-ов. Опциональные null-члены опускаются при
+сериализации.
+
+`InvalidParam` предоставляет стабильную структуру для ошибок валидации полей:
 
 ```php
 use Rasuvaeff\Yii3ApiProblem\InvalidParam;
@@ -72,12 +86,15 @@ $problem = ProblemDetails::fromStatus(status: 422)->withInvalidParams(
     InvalidParam::create(name: 'age', reason: 'Must be at least 18'),
 );
 ```
-Это создает расширение invalid-params, показанное в примерах RFC 9457. RFC
- 9457 разрешает элементы расширения, но не стандартизирует универсальную схему ошибок проверки
-; потребители должны выбрать эту форму, определенную упаковкой.
+
+Это создаёт extension `invalid-params`, показанный в примерах RFC 9457. RFC 9457
+допускает extension-members, но не стандартизирует универсальную схему ошибок
+валидации; потребители должны явно принять эту форму, определённую пакетом.
+
 ### Транспортные заголовки
-Передавайте заголовки, когда для проблемы требуются метаданные HTTP, такие как `Retry-After` или
- `WWW-Authenticate`:
+
+Передавайте заголовки, когда problem нужны HTTP-метаданные вроде `Retry-After` или
+`WWW-Authenticate`:
 
 ```php
 $response = $responseFactory->toResponse(
@@ -85,10 +102,14 @@ $response = $responseFactory->toResponse(
     headers: ['Retry-After' => '120'],
 );
 ```
-Значения заголовка могут быть строками или списками строк. Заголовки вызывающего объекта не могут переопределить
- обязательный тип контента `application/problem+json` или политику `nosniff`.
-### Бросить проблему
-Действие может вызвать проблему, предназначенную для клиента:
+
+Значения заголовков могут быть строками или списками строк. Заголовки вызывающего
+кода не могут переопределить обязательный content-type `application/problem+json`
+или политику `nosniff`.
+
+### Бросание problem
+
+Действие может бросить problem, предназначенный клиенту:
 
 ```php
 use Rasuvaeff\Yii3ApiProblem\ProblemDetails;
@@ -102,9 +123,12 @@ throw ProblemDetailsException::forProblem(
     headers: ['Retry-After' => '60'],
 );
 ```
-`ProblemDetailsMiddleware` сохраняет этот явно предоставленный документ. В частности, в
- при производстве намеренно не удаляются «детали».
-### Промежуточное программное обеспечение исключений
+
+`ProblemDetailsMiddleware` сохраняет этот явно переданный документ. В частности,
+намеренный `detail` не удаляется в production.
+
+### Middleware для исключений
+
 ```php
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Rasuvaeff\Yii3ApiProblem\DefaultExceptionMapper;
@@ -118,15 +142,18 @@ $middleware = new ProblemDetailsMiddleware(
     debug: false,
 );
 ```
-Поместите его вне обработчика приложения, который может выдать ошибку. Успешные ответы
- проходят без изменений. В рабочей среде обычные сообщения об исключениях и трассировки
- никогда не копируются в ответ. При `debug: true` `detail` содержит сообщение об исключении
-, а расширение `trace` содержит трассировку стека. Никогда
- не включайте режим отладки в рабочей среде.
-### Отчеты об исключениях
-Промежуточное программное обеспечение может сообщить об исходном исключении, прежде чем вернуть безопасный ответ
-. Реализуйте ThrowableReporterInterface в качестве небольшого адаптера для вашего регистратора
-, Sentry или другой системы наблюдения:
+
+Размещайте его снаружи обработчика приложения, который может бросить. Успешные
+ответы проходят без изменений. В production обычные сообщения исключений и трейсы
+никогда не копируются в ответ. При `debug: true` `detail` содержит сообщение
+исключения, а extension `trace` — его stack trace. Никогда не включайте debug-режим
+в production.
+
+### Отчётность об исключениях
+
+Middleware может отчитаться об исходном исключении до возврата безопасного ответа.
+Реализуйте `ThrowableReporterInterface` как небольшой адаптер к вашему логгеру,
+Sentry или другой системе наблюдения:
 
 ```php
 use Psr\Http\Message\ServerRequestInterface;
@@ -146,20 +173,22 @@ $middleware = new ProblemDetailsMiddleware(
     throwableReporter: new SentryThrowableReporter(),
 );
 ```
-Создатель отчетов получает как общие исключения, так и `ProblemDetailsException`,
- не вызывается для успешных ответов и не должен выдавать исключение.
 
- Сопоставитель по умолчанию обрабатывает следующие случаи:
+Репортёр получает и generic-исключения, и `ProblemDetailsException`, не
+вызывается для успешных ответов и не должен бросать.
 
- | Исключение | Результат |
- |---|---|
- | `ProblemDetailsException` | Прилагаемый документ |
- | Настроен точный класс исключений | Настроенный тип, заголовок и статус |
- | `InvalidArgumentException` | 400 неверный запрос |
- | `RuntimeException` | 500 Внутренняя ошибка сервера |
- | Любой другой `Throwable` | `ноль`; промежуточное программное обеспечение возвращается к общей версии 500 |
+Дефолтный маппер обрабатывает следующие случаи:
 
- Настроенные записи соответствуют конкретному классу, а не родительским классам или интерфейсам:
+| Исключение | Результат |
+|---|---|
+| `ProblemDetailsException` | Обёрнутый документ |
+| Настроенный точный класс исключения | Настроенные type, title и status |
+| `InvalidArgumentException` | 400 Bad Request |
+| `RuntimeException` | 500 Internal Server Error |
+| Любой другой `Throwable` | `null`; middleware fallback на generic 500 |
+
+Настроенные записи совпадают по точному классу, а не по родительским классам или
+интерфейсам:
 
 ```php
 $mapper = new DefaultExceptionMapper(exceptionMap: [
@@ -170,14 +199,17 @@ $mapper = new DefaultExceptionMapper(exceptionMap: [
     ],
 ]);
 ```
-Реализуйте ExceptionMapperInterface, когда для отображения требуется логика, специфичная для предметной области.
-### Конфигурация Yii3
-Плагин конфигурации связывает «ProblemDetailsResponseFactoryInterface», конкретный
- «DefaultExceptionMapper» и «ProblemDetailsMiddleware». Он намеренно
- не связывает `ExceptionMapperInterface` или `ThrowableReporterInterface`, поскольку приложение
- владеет этими заменяемыми вариантами.
 
- Параметры по умолчанию:
+Реализуйте `ExceptionMapperInterface`, когда маппингу нужна доменная логика.
+
+### Конфигурация Yii3
+
+Config-plugin биндит `ProblemDetailsResponseFactoryInterface`, конкретный
+`DefaultExceptionMapper` и `ProblemDetailsMiddleware`. Он намеренно не биндит
+`ExceptionMapperInterface` или `ThrowableReporterInterface`, поскольку этими
+заменяемыми выборами владеет приложение.
+
+Параметры по умолчанию:
 
 ```php
 return [
@@ -188,12 +220,15 @@ return [
     ],
 ];
 ```
-Ваша реализация PSR-17 должна предоставлять в контейнере ResponseFactoryInterface и
- StreamFactoryInterface. Переопределить определение промежуточного программного обеспечения
- при предоставлении пользовательского сопоставителя, CorrelationIdProvider или генератора отчетов.
-### Идентификатор корреляции
-Реализуйте небольшой интерфейс CorrelationIdProvider этого пакета и передайте его
- промежуточному программному обеспечению. Ненулевой идентификатор становится «экземпляром» проблемы:
+
+Ваша реализация PSR-17 должна предоставлять `ResponseFactoryInterface` и
+`StreamFactoryInterface` в контейнере. Переопределите определение middleware, когда
+подаёте кастомный маппер, `CorrelationIdProvider` или репортёр.
+
+### Correlation ID
+
+Реализуйте небольшой интерфейс `CorrelationIdProvider` этого пакета и передайте его
+в middleware. Ненулевой ID становится `instance` problem:
 
 ```php
 use Rasuvaeff\Yii3ApiProblem\CorrelationIdProvider;
@@ -210,35 +245,47 @@ final readonly class ApiProblemCorrelationIdProvider implements CorrelationIdPro
     }
 }
 ```
-Адаптер сохраняет `rasuvaeff/yii3-correlation-id` необязательным.
-## Когда какой использовать
-Используйте этот пакет, если вам нужен небольшой объект значения RFC 9457, а также настраиваемый преобразователь исключений
-, расширение типизированной проверки, транспортные заголовки, отчеты об исключениях
-, политика раскрытия продукции/отладки, интеграция идентификаторов корреляции и подключение
- плагина конфигурации Yii3.
-Use [`crell/api-problem`](https://packagist.org/packages/crell/api-problem) when
-вам нужна зрелая экосистема общего PHP, сериализация XML или существующая интеграция
- PSR-7/15/17. Это установленный пакет; эта библиотека является
- самоуверенной альтернативой, ориентированной на Yii3, а не заявлением о том, что универсальная ниша пуста.
 
- Если `yiisoft/error-handler` уже форматирует каждое исключение в вашем приложении,
- используйте один путь форматирования ошибок. Это промежуточное программное обеспечение должно находиться вне обработчика выдачи
-; он не может переформатировать ответ, уже созданный другим обработчиком ошибок.
+Адаптер держит `rasuvaeff/yii3-correlation-id` опциональным.
+
+## Когда что использовать
+
+Используйте этот пакет, когда нужен небольшой RFC 9457 value object плюс
+настраиваемый маппер исключений, типизированный validation-extension, транспортные
+заголовки, отчётность об исключениях, политика раскрытия production/debug,
+интеграция correlation ID и подключение через Yii3 config-plugin.
+
+Используйте [`crell/api-problem`](https://packagist.org/packages/crell/api-problem),
+когда нужна его зрелая экосистема общего PHP, XML-сериализация или готовая
+интеграция PSR-7/15/17. Это устоявшийся пакет; данная библиотека —
+opinionated-альтернатива с фокусом на Yii3, а не утверждение, что generic-ниша пуста.
+
+Если `yiisoft/error-handler` уже форматирует каждое исключение в вашем приложении,
+используйте один путь форматирования ошибок. Этот middleware должен располагаться
+снаружи бросающего обработчика; он не может переформатировать ответ, уже созданный
+другим error handler-ом.
+
 ## Безопасность
-— В производстве оставляйте `debug` false. Обычные сообщения об исключениях и трассировки стека
- считаются конфиденциальными.
- — рассматривать значения расширения как данные ответа. Кодирование JSON предотвращает структурное внедрение
- JSON, но не обеспечивает безопасность доступа к учетным данным или личным данным.
- — URI типа проблемы — это идентификаторы, а не автоматически извлекаемая документация.
- — `ProblemDetailsException` — это явная граница раскрытия: выдавайте его
- только с безопасными для клиента `detail`, расширениями и заголовками.
- — реализации Reporter не должны выдавать и должны редактировать конфиденциальные данные запроса
- перед отправкой их в стороннюю телеметрию.
+
+- Держите `debug` в `false` в production. Обычные сообщения исключений и трейсы
+  стека считаются чувствительными.
+- Рассматривайте значения extension-ов как данные ответа. JSON-кодирование
+  предотвращает структурную JSON-инъекцию, но не делает безопасным раскрытие
+  учётных данных или персональных данных.
+- URI типа problem — это идентификаторы, а не автоматически извлекаемая документация.
+- `ProblemDetailsException` — это явная граница раскрытия: бросайте его только с
+  безопасными для клиента `detail`, extension-ами и заголовками.
+- Реализации репортёра не должны бросать и должны редактировать чувствительные
+  данные запроса перед отправкой в стороннюю телеметрию.
+
 ## Примеры
-См. [examples/](examples/) для исполняемых сценариев, охватывающих ручные ответы, исключения
-, расширения типизированной проверки, настройку промежуточного программного обеспечения, пользовательские сопоставления, отчеты
- и транспортные заголовки.
+
+Исполняемые скрипты — в [examples/](examples/): ручные ответы, исключения,
+типизированные validation-extension-ы, настройка middleware, кастомные маппинги,
+отчётность и транспортные заголовки.
+
 ## Разработка
+
 ```bash
 composer build
 composer test
@@ -246,8 +293,10 @@ composer psalm
 composer mutation
 composer bench
 ```
-В этом репозитории PHP и Composer запускаются через Docker; эквивалентными целями Make
- являются `make build`, `make test`, `make psalm`, `makemutation` и
-`makebench`.
+
+В этом репозитории PHP и Composer запускаются через Docker; эквивалентные Make
+-цели — `make build`, `make test`, `make psalm`, `make mutation` и `make bench`.
+
 ## Лицензия
-Пакет выпущен под лицензией [BSD 3-Clause License](LICENSE.md).
+
+Пакет выпущен под [BSD 3-Clause License](LICENSE.md).
