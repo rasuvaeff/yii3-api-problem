@@ -76,7 +76,7 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           coverage: none
-          extensions: json
+          extensions: json, mbstring
           tools: composer:v2
 
       - name: Cache Composer dependencies
@@ -109,7 +109,7 @@ jobs:
         with:
           php-version: '8.3'
           coverage: none
-          extensions: json
+          extensions: json, mbstring
           tools: composer:v2
 
       - name: Cache Composer dependencies
@@ -142,7 +142,7 @@ jobs:
         with:
           php-version: '8.4'
           coverage: pcov
-          extensions: json
+          extensions: json, mbstring
           tools: composer:v2
 
       - name: Cache Composer dependencies
@@ -155,8 +155,17 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
 
+      - name: Restore property regression corpus
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: build/property-db
+          key: property-db-${{ github.run_id }}
+          restore-keys: property-db-
+
       - name: Test with coverage
         run: composer test:coverage:ci
+        env:
+          PROPERTY_DB: ${{ github.workspace }}/build/property-db
 
       - name: Mutation testing
         run: composer mutation
@@ -179,7 +188,7 @@ jobs:
         with:
           php-version: '8.4'
           coverage: none
-          extensions: json, bcmath, intl
+          extensions: json, mbstring, bcmath, intl
           tools: composer:v2
 
       - name: Cache Composer dependencies
