@@ -20,6 +20,7 @@ use Rasuvaeff\Yii3ApiProblem\Tests\Support\RecordingThrowableReporter;
 use Rasuvaeff\Yii3ApiProblem\ThrowableReporterInterface;
 use RuntimeException;
 use Testo\Assert;
+use Testo\Assert\Api\Json\JsonAbstract;
 use Testo\Codecov\Covers;
 use Testo\Test;
 use Throwable;
@@ -55,7 +56,11 @@ final class ProblemDetailsMiddlewareTest
 
         Assert::same($response->getStatusCode(), 422);
         Assert::same($response->getHeaderLine('Retry-After'), '60');
-        Assert::same($this->body($response)['detail'], 'Email is invalid');
+        Assert::json((string) $response->getBody())
+            ->isObject()
+            ->assertPath('$.detail', static function (JsonAbstract $json): void {
+                Assert::same($json->decode(), 'Email is invalid');
+            });
     }
 
     public function reportsGenericThrowableWithRequestContext(): void
@@ -181,7 +186,11 @@ final class ProblemDetailsMiddlewareTest
             correlationIdProvider: $provider,
         )->process(new ServerRequest('GET', '/'), $handler);
 
-        Assert::same($this->body($response)['instance'], 'request-abc');
+        Assert::json((string) $response->getBody())
+            ->isObject()
+            ->assertPath('$.instance', static function (JsonAbstract $json): void {
+                Assert::same($json->decode(), 'request-abc');
+            });
     }
 
     public function nullCorrelationIdLeavesInstanceAbsent(): void
