@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Rasuvaeff\Yii3ApiProblem\Tests;
 
 use InvalidArgumentException;
+use Rasuvaeff\PropertyTesting\ArbitraryInterface;
+use Rasuvaeff\PropertyTesting\Gen;
+use Rasuvaeff\PropertyTesting\Property;
 use Rasuvaeff\Yii3ApiProblem\InvalidParam;
 use Rasuvaeff\Yii3ApiProblem\ProblemDetails;
 use Testo\Assert;
@@ -199,5 +202,102 @@ final class ProblemDetailsTest
         $problem = ProblemDetails::create(title: 'Bad Request', status: 400, extensions: ['value' => 1.0]);
 
         Assert::string($problem->toJson(JSON_PRESERVE_ZERO_FRACTION))->contains('1.0');
+    }
+
+    #[Property(runs: 200, generators: 'problemGenerators')]
+    public function toJsonAndToArrayAgree(
+        string $type,
+        string $title,
+        int $status,
+        ?string $detail,
+        ?string $instance,
+        array $extensions,
+    ): void {
+        $problem = new ProblemDetails(
+            type: $type,
+            title: $title,
+            status: $status,
+            detail: $detail,
+            instance: $instance,
+            extensions: $extensions,
+        );
+
+        Assert::same(json_decode($problem->toJson(), true), $problem->toArray());
+    }
+
+    #[Property(runs: 200)]
+    public function toJsonIsDeterministic(string $type, string $title, int $status): void
+    {
+        $problem = new ProblemDetails(type: $type, title: $title, status: $status);
+
+        Assert::same($problem->toJson(), $problem->toJson());
+    }
+
+    public static function toJsonIsDeterministicGenerators(): array
+    {
+        return [
+            'type' => Gen::stringOf(1, 30),
+            'title' => Gen::string(),
+            'status' => Gen::intBetween(100, 599),
+        ];
+    }
+
+    #[Property(runs: 200, generators: 'problemGenerators')]
+    public function toArrayAlwaysHasMandatoryMembers(
+        string $type,
+        string $title,
+        int $status,
+        ?string $detail,
+        ?string $instance,
+        array $extensions,
+    ): void {
+        $problem = new ProblemDetails(
+            type: $type,
+            title: $title,
+            status: $status,
+            detail: $detail,
+            instance: $instance,
+            extensions: $extensions,
+        );
+        $array = $problem->toArray();
+
+        Assert::same($array['type'], $type);
+        Assert::same($array['title'], $title);
+        Assert::same($array['status'], $status);
+    }
+
+    /**
+     * @return array<string, ArbitraryInterface>
+     */
+    public static function problemGenerators(): array
+    {
+        $scalar = Gen::frequency([
+            [3, Gen::string()],
+            [3, Gen::int()],
+            [1, Gen::bool()],
+            [1, Gen::constant(null)],
+        ]);
+
+        $extensionValue = Gen::frequency([
+            [3, $scalar],
+            [1, Gen::arrayOf($scalar, 0, 3)],
+        ]);
+
+        return [
+            'type' => Gen::stringOf(1, 30),
+            'title' => Gen::string(),
+            'status' => Gen::intBetween(100, 599),
+            'detail' => Gen::nullable(Gen::string()),
+            'instance' => Gen::nullable(Gen::string()),
+            'extensions' => Gen::dictOf(
+                Gen::map(
+                    Gen::stringFrom('abcdefghijklmnopqrstuvwxyz', 1, 8),
+                    static fn(string $suffix): string => 'ext_' . $suffix,
+                ),
+                $extensionValue,
+                0,
+                4,
+            ),
+        ];
     }
 }
