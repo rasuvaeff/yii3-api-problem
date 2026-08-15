@@ -242,7 +242,7 @@ final class ProblemDetailsMiddlewareTest
     private function body(ResponseInterface $response): array
     {
         /** @var array<string, mixed> $body */
-        $body = json_decode((string) $response->getBody(), true, flags: JSON_THROW_ON_ERROR);
+        $body = json_decode((string) $response->getBody(), associative: true, flags: JSON_THROW_ON_ERROR);
 
         return $body;
     }
