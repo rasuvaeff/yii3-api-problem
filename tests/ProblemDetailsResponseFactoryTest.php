@@ -31,7 +31,7 @@ final class ProblemDetailsResponseFactoryTest
         Assert::same($response->getHeaderLine('Content-Type'), 'application/problem+json');
         Assert::same($response->getHeaderLine('X-Content-Type-Options'), 'nosniff');
         Assert::same(
-            json_decode((string) $response->getBody(), true, flags: JSON_THROW_ON_ERROR),
+            json_decode((string) $response->getBody(), associative: true, flags: JSON_THROW_ON_ERROR),
             $problem->toArray(),
         );
     }

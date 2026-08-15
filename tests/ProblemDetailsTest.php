@@ -6,6 +6,7 @@ namespace Rasuvaeff\Yii3ApiProblem\Tests;
 
 use InvalidArgumentException;
 use Rasuvaeff\PropertyTesting\ArbitraryInterface;
+use Rasuvaeff\PropertyTesting\Classify;
 use Rasuvaeff\PropertyTesting\Gen;
 use Rasuvaeff\PropertyTesting\Property;
 use Rasuvaeff\Yii3ApiProblem\InvalidParam;
@@ -222,7 +223,120 @@ final class ProblemDetailsTest
             extensions: $extensions,
         );
 
-        Assert::same(json_decode($problem->toJson(), true), $problem->toArray());
+        // A problem with no extensions and one carrying a nested array take
+        // different paths through the encoder; both have to agree with
+        // toArray().
+        Classify::cover($extensions === [], 'no extensions', 15.0);
+        Classify::cover($extensions !== [], 'with extensions', 40.0);
+        Classify::when($detail === null && $instance === null, 'mandatory members only');
+
+        Assert::same(json_decode($problem->toJson(), associative: true), $problem->toArray());
+    }
+
+    /**
+     * @return iterable<string, array{string, string, int, ?string, ?string, array<string, mixed>}>
+     */
+    public static function toJsonAndToArrayAgreeExamples(): iterable
+    {
+        // The inputs where a hand-rolled encoder and a json_encode() disagree:
+        // characters that must be escaped, a value that is null rather than
+        // absent, and an extension holding a nested structure.
+        yield 'mandatory members only' => ['about:blank', 'Not Found', 404, null, null, []];
+        yield 'quotes and backslashes in the title' => ['about:blank', 'He said "no" \\ then left', 400, null, null, []];
+        yield 'unicode title' => ['about:blank', 'Недостаточно средств', 402, null, null, []];
+        yield 'newline in detail' => ['about:blank', 'Bad Request', 400, "line one\nline two", null, []];
+        yield 'nested extension' => ['about:blank', 'Bad Request', 400, null, null, ['ext_a' => ['x', 1, null]]];
+        yield 'status at the lower bound' => ['about:blank', 'Continue', 100, null, null, []];
+        yield 'status at the upper bound' => ['about:blank', 'Unknown', 599, null, null, []];
+    }
+
+    #[Property(runs: 200)]
+    public function anExtensionKeyIsAcceptedExactlyWhenItIsNotAReservedMember(string $key, int $value): void
+    {
+        $reserved = \in_array($key, ['type', 'title', 'status', 'detail', 'instance'], strict: true);
+
+        Classify::cover($reserved, 'reserved member', 20.0);
+        Classify::cover(!$reserved, 'free extension key', 20.0);
+
+        if ($reserved) {
+            // try/catch rather than Expect::exception(): a property body runs
+            // hundreds of times inside one test, and only some of those runs
+            // expect a throw. Registering an expectation on a shared test
+            // result from inside a loop is not what that API is for.
+            $threw = false;
+
+            try {
+                ProblemDetails::create(title: 'x', status: 400, extensions: [$key => $value]);
+            } catch (InvalidArgumentException $e) {
+                // Silently accepting a reserved key would let an extension
+                // overwrite a mandatory member in the serialized document.
+                $threw = true;
+                Assert::string($e->getMessage())->contains('is reserved');
+            }
+
+            Assert::true($threw);
+
+            return;
+        }
+
+        $problem = ProblemDetails::create(title: 'x', status: 400, extensions: [$key => $value]);
+
+        Assert::same($problem->toArray()[$key], $value);
+    }
+
+    /**
+     * @return array<string, ArbitraryInterface>
+     */
+    public static function anExtensionKeyIsAcceptedExactlyWhenItIsNotAReservedMemberGenerators(): array
+    {
+        return [
+            // Half the draws are the reserved members themselves, so the
+            // rejecting branch is reached by construction rather than by a
+            // random string colliding with one of five words.
+            'key' => Gen::frequency([
+                [1, Gen::elements(['type', 'title', 'status', 'detail', 'instance'])],
+                [1, Gen::regex('[a-z][a-z0-9_-]{0,12}')],
+            ]),
+            'value' => Gen::int(),
+        ];
+    }
+
+    #[Property(runs: 200)]
+    public function invalidParamsSurviveIntoTheExtensionVerbatim(array $pairs): void
+    {
+        $params = \array_map(
+            static fn(array $pair): InvalidParam => InvalidParam::create(name: $pair[0], reason: $pair[1]),
+            $pairs,
+        );
+
+        Classify::cover(\count($params) === 1, 'a single failure', 15.0);
+        Classify::cover(\count($params) > 1, 'several failures', 40.0);
+
+        $problem = ProblemDetails::create(title: 'Validation failed', status: 422)
+            ->withInvalidParams(...$params);
+
+        // RFC 9457 puts the list under one well-known key, in order; a client
+        // rendering a form relies on both.
+        Assert::same(
+            $problem->toArray()[ProblemDetails::INVALID_PARAMS_EXTENSION],
+            \array_map(static fn(InvalidParam $param): array => $param->toArray(), $params),
+        );
+    }
+
+    /**
+     * @return array<string, ArbitraryInterface>
+     */
+    public static function invalidParamsSurviveIntoTheExtensionVerbatimGenerators(): array
+    {
+        return [
+            'pairs' => Gen::nonEmptyArrayOf(
+                Gen::tuple(
+                    Gen::stringFrom('abcdefghijklmnopqrstuvwxyz.[]0123456789', minLength: 1, maxLength: 16),
+                    Gen::stringFrom('abcdefghijklmnopqrstuvwxyz ', minLength: 1, maxLength: 24),
+                ),
+                4,
+            ),
+        ];
     }
 
     #[Property(runs: 200)]
