@@ -25,6 +25,11 @@ Provide a PSR-7/17 implementation such as `nyholm/psr7`.
 - Reporter implementations receive the throwable and request and must not throw.
 - Configured exception mappings use exact class names.
 - The package does not bind mapper or reporter interfaces; applications own them.
+- Config params `rasuvaeff/yii3-api-problem`: `debug` (bool, default false),
+  `use_default_mapper` (bool, default true), `exception_map` (array, default
+  `[]`), `throwable_reporter` (class name string or `null`, default `null` —
+  a `ThrowableReporterInterface` FQCN resolved from the container and passed
+  to `ProblemDetailsMiddleware`).
 
 ## API reference
 
@@ -77,6 +82,9 @@ $middleware = new ProblemDetailsMiddleware(
     correlationIdProvider: $optionalProvider,
     throwableReporter: $optionalReporter,
 );
+
+// In a Yii3 application, params['rasuvaeff/yii3-api-problem']['throwable_reporter']
+// = SentryThrowableReporter::class wires the reporter from the DI container instead.
 ```
 
 Interfaces:

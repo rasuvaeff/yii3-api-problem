@@ -175,6 +175,10 @@ $middleware = new ProblemDetailsMiddleware(
 The reporter receives both generic exceptions and `ProblemDetailsException`, is
 not called for successful responses, and must not throw.
 
+In a Yii3 application you can hand the reporter to the middleware through
+params instead of redefining the middleware definition — see
+[Yii3 configuration](#yii3-configuration).
+
 The default mapper handles these cases:
 
 | Exception | Result |
@@ -214,13 +218,30 @@ return [
         'debug' => false,
         'use_default_mapper' => true,
         'exception_map' => [],
+        'throwable_reporter' => null,
     ],
 ];
 ```
 
+`throwable_reporter` names a `ThrowableReporterInterface` implementation the
+config plugin resolves from the container and passes to the middleware:
+
+```php
+return [
+    'rasuvaeff/yii3-api-problem' => [
+        'throwable_reporter' => App\Infrastructure\SentryThrowableReporter::class,
+    ],
+];
+```
+
+With the default `null` (or the key absent), the middleware gets no reporter.
+The package never binds `ThrowableReporterInterface` itself — the application
+owns the implementation and its construction, just like the mapper.
+
 Your PSR-17 implementation must provide `ResponseFactoryInterface` and
 `StreamFactoryInterface` in the container. Override the middleware definition
-when supplying a custom mapper, `CorrelationIdProvider`, or reporter.
+when supplying a custom mapper, `CorrelationIdProvider`, or when the reporter
+needs wiring beyond a plain container-resolved class.
 
 ### Correlation ID
 
