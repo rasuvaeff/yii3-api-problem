@@ -177,6 +177,9 @@ $middleware = new ProblemDetailsMiddleware(
 Репортёр получает и generic-исключения, и `ProblemDetailsException`, не
 вызывается для успешных ответов и не должен бросать.
 
+В Yii3-приложении можно передать репортёр в middleware через params вместо
+переопределения определения middleware — см. [Конфигурация Yii3](#конфигурация-yii3).
+
 Дефолтный маппер обрабатывает следующие случаи:
 
 | Исключение | Результат |
@@ -217,13 +220,30 @@ return [
         'debug' => false,
         'use_default_mapper' => true,
         'exception_map' => [],
+        'throwable_reporter' => null,
     ],
 ];
 ```
 
+`throwable_reporter` называет реализацию `ThrowableReporterInterface`, которую
+config-plugin берёт из контейнера и передаёт в middleware:
+
+```php
+return [
+    'rasuvaeff/yii3-api-problem' => [
+        'throwable_reporter' => App\Infrastructure\SentryThrowableReporter::class,
+    ],
+];
+```
+
+При значении по умолчанию `null` (или отсутствующем ключе) middleware не получает
+репортёр. Пакет сам никогда не биндит `ThrowableReporterInterface` — реализацией
+и её построением владеет приложение, как и маппером.
+
 Ваша реализация PSR-17 должна предоставлять `ResponseFactoryInterface` и
 `StreamFactoryInterface` в контейнере. Переопределите определение middleware, когда
-подаёте кастомный маппер, `CorrelationIdProvider` или репортёр.
+подаёте кастомный маппер, `CorrelationIdProvider` или когда репортёру нужна
+обвязка сверх класса, берущегося из контейнера.
 
 ### Correlation ID
 
