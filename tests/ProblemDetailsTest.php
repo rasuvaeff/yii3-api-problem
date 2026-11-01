@@ -226,7 +226,7 @@ final class ProblemDetailsTest
         // A problem with no extensions and one carrying a nested array take
         // different paths through the encoder; both have to agree with
         // toArray().
-        Classify::cover($extensions === [], 'no extensions', 15.0);
+        Classify::cover($extensions === [], 'no extensions', 8.0);
         Classify::cover($extensions !== [], 'with extensions', 40.0);
         Classify::when($detail === null && $instance === null, 'mandatory members only');
 

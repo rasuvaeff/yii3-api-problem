@@ -230,16 +230,15 @@ final readonly class ProblemDetails
     /**
      * @throws JsonException
      */
-    public function toJson(int $flags = 0): string
-    {
+    public function toJson(
+        int $flags = 0,
+    ): string {
         $json = json_encode(
             $this->toArray(),
             JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | $flags,
         );
 
-        if ($json === false) {
-            throw new JsonException('Failed to encode problem details');
-        }
+        \assert(\is_string($json));
 
         return $json;
     }
