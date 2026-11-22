@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `ProblemDetails::toJson()` signature is split over several lines, and the
   unreachable `$json === false` branch (`JSON_THROW_ON_ERROR` is always set) is
   replaced by an `assert()`.
+- **Changed:** PHP 8.6 is supported: the `php` constraint is widened to
+  `8.3 - 8.6` (#19). CI runs PHP 8.6 as a regular matrix entry; the
+  backward-compatibility job runs on PHP 8.5.
 
 ## 1.1.0 — 2026-10-17
 
