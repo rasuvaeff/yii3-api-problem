@@ -17,7 +17,7 @@ with middleware that has explicit production and debug disclosure policies.
 
 ## Requirements
 
-- PHP 8.3-8.5.
+- PHP 8.3-8.6.
 - A PSR-7 implementation and PSR-17 response/stream factories.
 - A PSR-15 stack only when using `ProblemDetailsMiddleware`.
 
